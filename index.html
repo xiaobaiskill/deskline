@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Deskline · 英语壁纸</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e0a15a'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='16' font-family='Georgia' fill='%2324180c'%3ED%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">D</span>
+      <div>
+        <strong>Deskline</strong>
+        <p id="meta">按你的屏幕尺寸生成壁纸</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="btn" id="addText">添加文本</button>
+      <button type="button" class="btn" id="addCard">单词卡</button>
+      <button type="button" class="btn primary" id="apply" title="生成和当前屏幕一样大的 PNG（⌘↩）">下载壁纸</button>
+    </div>
+  </header>
+
+  <div class="format" id="format" aria-label="文字格式">
+    <button type="button" class="tool" id="bold" title="加粗 ⌘B">B</button>
+    <button type="button" class="tool italic" id="italic" title="斜体 ⌘I">I</button>
+    <button type="button" class="tool under" id="underline" title="下划线 ⌘U">U</button>
+    <span class="sep"></span>
+    <span class="fmt-label">字色</span>
+    <div class="swatches" id="inkSwatches"></div>
+    <span class="sep"></span>
+    <span class="fmt-label">底色</span>
+    <div class="swatches" id="markSwatches"></div>
+    <span class="sep"></span>
+    <span class="fmt-label">字号</span>
+    <div class="sizes" id="sizes"></div>
+    <span class="sep"></span>
+    <button type="button" class="tool danger" id="remove">删除</button>
+    <button type="button" class="tool" id="samples">示例</button>
+    <p class="hint">单击选中后拖动。双击编辑。左右键切换背景。新图片要写进 backgrounds/manifest.json。</p>
+  </div>
+
+  <main id="stage">
+    <button type="button" class="bg-nav prev" id="bgPrev" aria-label="上一张背景">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div id="scaler">
+      <div id="board">
+        <div class="placeholder" id="placeholder" hidden>双击文字开始修改<br />拖动即可摆到任意位置</div>
+      </div>
+    </div>
+    <button type="button" class="bg-nav next" id="bgNext" aria-label="下一张背景">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <p class="bg-caption" id="bgCaption"></p>
+  </main>
+
+  <div id="toast" hidden role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>

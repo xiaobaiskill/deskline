@@ -1,0 +1,5 @@
+.DS_Store
+.wrangler/
+__pycache__/
+*.py[cod]
+wallpaper.png
