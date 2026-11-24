@@ -1,7 +1,252 @@
 [
-  "01-夜灯书桌.jpg",
-  "02-晨光桌面.jpg",
-  "03-雨夜窗边.jpg",
-  "04-林间薄雾.jpg",
-  "05-暖色房间.jpg"
+  {
+    "file": "01-夜灯书桌.jpg",
+    "zh": "夜灯书桌",
+    "en": "Night desk"
+  },
+  {
+    "file": "02-晨光桌面.jpg",
+    "zh": "晨光桌面",
+    "en": "Morning desk"
+  },
+  {
+    "file": "03-雨夜窗边.jpg",
+    "zh": "雨夜窗边",
+    "en": "Rainy window"
+  },
+  {
+    "file": "04-林间薄雾.jpg",
+    "zh": "林间薄雾",
+    "en": "Forest mist"
+  },
+  {
+    "file": "05-暖色房间.jpg",
+    "zh": "暖色房间",
+    "en": "Warm room"
+  },
+  {
+    "file": "06-海边黄昏.jpg",
+    "zh": "海边黄昏",
+    "en": "Sea at dusk"
+  },
+  {
+    "file": "07-雪山晨光.jpg",
+    "zh": "雪山晨光",
+    "en": "Snow morning"
+  },
+  {
+    "file": "08-雨后街道.jpg",
+    "zh": "雨后街道",
+    "en": "Wet street"
+  },
+  {
+    "file": "09-安静图书馆.jpg",
+    "zh": "安静图书馆",
+    "en": "Quiet library"
+  },
+  {
+    "file": "10-麦田黄昏.jpg",
+    "zh": "麦田黄昏",
+    "en": "Wheat field"
+  },
+  {
+    "file": "11-星空.jpg",
+    "zh": "星空",
+    "en": "Starry sky"
+  },
+  {
+    "file": "12-竹林.jpg",
+    "zh": "竹林",
+    "en": "Bamboo"
+  },
+  {
+    "file": "13-湖面倒影.jpg",
+    "zh": "湖面倒影",
+    "en": "Lake"
+  },
+  {
+    "file": "14-旧书店.jpg",
+    "zh": "旧书店",
+    "en": "Old bookshop"
+  },
+  {
+    "file": "15-窗台植物.jpg",
+    "zh": "窗台植物",
+    "en": "Window plants"
+  },
+  {
+    "file": "16-沙漠黄昏.jpg",
+    "zh": "沙漠黄昏",
+    "en": "Desert dusk"
+  },
+  {
+    "file": "17-雪中小屋.jpg",
+    "zh": "雪中小屋",
+    "en": "Snow cabin"
+  },
+  {
+    "file": "18-城市夜景.jpg",
+    "zh": "城市夜景",
+    "en": "City night"
+  },
+  {
+    "file": "19-樱花小路.jpg",
+    "zh": "樱花小路",
+    "en": "Cherry path"
+  },
+  {
+    "file": "20-海边礁石.jpg",
+    "zh": "海边礁石",
+    "en": "Coastal rocks"
+  },
+  {
+    "file": "21-书房一角.jpg",
+    "zh": "书房一角",
+    "en": "Study corner"
+  },
+  {
+    "file": "22-晨雾山谷.jpg",
+    "zh": "晨雾山谷",
+    "en": "Misty valley"
+  },
+  {
+    "file": "23-木质码头.jpg",
+    "zh": "木质码头",
+    "en": "Wooden pier"
+  },
+  {
+    "file": "24-秋叶小路.jpg",
+    "zh": "秋叶小路",
+    "en": "Autumn path"
+  },
+  {
+    "file": "25-月光海面.jpg",
+    "zh": "月光海面",
+    "en": "Moonlit sea"
+  },
+  {
+    "file": "26-温室花房.jpg",
+    "zh": "温室花房",
+    "en": "Greenhouse"
+  },
+  {
+    "file": "27-山顶云海.jpg",
+    "zh": "山顶云海",
+    "en": "Sea of clouds"
+  },
+  {
+    "file": "28-旧火车站.jpg",
+    "zh": "旧火车站",
+    "en": "Old station"
+  },
+  {
+    "file": "29-薰衣草田.jpg",
+    "zh": "薰衣草田",
+    "en": "Lavender"
+  },
+  {
+    "file": "30-河上石桥.jpg",
+    "zh": "河上石桥",
+    "en": "Stone bridge"
+  },
+  {
+    "file": "31-清晨厨房.jpg",
+    "zh": "清晨厨房",
+    "en": "Morning kitchen"
+  },
+  {
+    "file": "32-悬崖海岸.jpg",
+    "zh": "悬崖海岸",
+    "en": "Cliff coast"
+  },
+  {
+    "file": "33-冬日公园.jpg",
+    "zh": "冬日公园",
+    "en": "Winter park"
+  },
+  {
+    "file": "34-茶席.jpg",
+    "zh": "茶席",
+    "en": "Tea table"
+  },
+  {
+    "file": "35-草原黄昏.jpg",
+    "zh": "草原黄昏",
+    "en": "Grassland"
+  },
+  {
+    "file": "36-古镇河巷.jpg",
+    "zh": "古镇河巷",
+    "en": "Old town"
+  },
+  {
+    "file": "37-日落沙滩.jpg",
+    "zh": "日落沙滩",
+    "en": "Sunset beach"
+  },
+  {
+    "file": "38-松林.jpg",
+    "zh": "松林",
+    "en": "Pine forest"
+  },
+  {
+    "file": "39-白窗帘.jpg",
+    "zh": "白窗帘",
+    "en": "White curtain"
+  },
+  {
+    "file": "40-清晨港湾.jpg",
+    "zh": "清晨港湾",
+    "en": "Harbor"
+  },
+  {
+    "file": "41-红墙小巷.jpg",
+    "zh": "红墙小巷",
+    "en": "Red lane"
+  },
+  {
+    "file": "42-雾中公路.jpg",
+    "zh": "雾中公路",
+    "en": "Foggy road"
+  },
+  {
+    "file": "43-向日葵田.jpg",
+    "zh": "向日葵田",
+    "en": "Sunflowers"
+  },
+  {
+    "file": "44-夜色书店.jpg",
+    "zh": "夜色书店",
+    "en": "Bookshop at night"
+  },
+  {
+    "file": "45-晨光卧室.jpg",
+    "zh": "晨光卧室",
+    "en": "Morning bedroom"
+  },
+  {
+    "file": "46-夜雨窗.jpg",
+    "zh": "夜雨窗",
+    "en": "Rain on the window"
+  },
+  {
+    "file": "47-空教室.jpg",
+    "zh": "空教室",
+    "en": "Empty classroom"
+  },
+  {
+    "file": "48-陶碗.jpg",
+    "zh": "陶碗",
+    "en": "Ceramic bowl"
+  },
+  {
+    "file": "49-枫叶湖.jpg",
+    "zh": "枫叶湖",
+    "en": "Maple lake"
+  },
+  {
+    "file": "50-远处灯塔.jpg",
+    "zh": "远处灯塔",
+    "en": "Distant lighthouse"
+  }
 ]

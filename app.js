@@ -15,13 +15,28 @@ const bgCaption = document.getElementById("bgCaption");
 const bgPrev = document.getElementById("bgPrev");
 const bgNext = document.getElementById("bgNext");
 
-const screenW = window.screen.width;
-const screenH = window.screen.height;
+const NATIVE_W = window.screen.width;
+const NATIVE_H = window.screen.height;
+let screenW = NATIVE_W;
+let screenH = NATIVE_H;
+let sizeKey = "native";
+const SIZE_PRESETS = [
+  { key: "native" },
+  { key: "1280x800", w: 1280, h: 800 },
+  { key: "1440x900", w: 1440, h: 900 },
+  { key: "1920x1080", w: 1920, h: 1080 },
+  { key: "2560x1440", w: 2560, h: 1440 },
+];
 
 let backgrounds = [];
 let bgIndex = 0;
 let bgId = "";
 let defaultInk = "#f4efe6";
+let lang = localStorage.getItem("deskline.lang") === "en" ? "en" : "zh";
+let WORD_JUNIOR = [];
+let WORD_SENIOR = [];
+let WORD_INDEX = new Map();
+let lastCardWord = "";
 let selected = null;
 let savedRange = null;
 let toastTimer = 0;
@@ -56,6 +71,8 @@ function serialize() {
         html: body.innerHTML,
         style: body.getAttribute("style") || "",
         accent: note.dataset.accent || "",
+        plate: note.dataset.plate || "",
+        align: note.dataset.align || "",
       };
     }),
   };
@@ -81,25 +98,313 @@ function loadState() {
   }
 }
 
-function sampleNotes() {
-  return [
-    {
-      x: 0.06, y: 0.11, w: 0.4, accent: "#e0a15a", size: 28,
-      html: '<div class="word">serendipity</div><div class="ipa">/ˌser.ənˈdɪp.ə.ti/</div><div class="gloss">n. 意外发现美好事物的运气</div><div class="ex">Finding something good without looking for it.</div>',
-    },
-    {
-      x: 0.54, y: 0.15, w: 0.38, accent: "#e0a15a", size: 28,
-      html: '<div class="word">meticulous</div><div class="ipa">/məˈtɪk.jə.ləs/</div><div class="gloss">adj. 非常仔细、一丝不苟的</div><div class="ex">She keeps meticulous notes of every new word.</div>',
-    },
-    {
-      x: 0.06, y: 0.7, w: 0.48, accent: "", size: 30,
-      html: '<div class="kicker">TODAY</div><div class="lead">I will use one new word in a real sentence.</div>',
-    },
-  ];
+const STR = {
+  zh: {
+    title: "Deskline · 英语壁纸",
+    meta: "屏幕 {w} × {h} · 壁纸 {pw} × {ph} · 已保存在这台电脑上",
+    addJunior: "初中 1500",
+    addSenior: "高中 2000",
+    custom: "自定义",
+    addText: "文本",
+    addLine: "句子",
+    preview: "预览",
+    download: "下载",
+    apply: "更换屏幕",
+    applyTitle: "交给本机助手设为桌面（⌘↩）",
+    screen: "屏幕设置",
+    words: "海外单词",
+    text: "文本",
+    native: "本机",
+    useCustom: "使用",
+    addJuniorCount: "1500 个词",
+    addSeniorCount: "2000 个词",
+    badSize: "宽和高请填 640 到 7680 之间的数字。",
+    prevBg: "上一张背景",
+    nextBg: "下一张背景",
+    placeholder: "双击文字开始修改<br />拖动即可摆到任意位置",
+    film: "背景",
+    format: "文字格式",
+    bold: "加粗 ⌘B",
+    italic: "斜体 ⌘I",
+    underline: "下划线 ⌘U",
+    alignLeft: "靠左",
+    alignCenter: "居中",
+    left: "左",
+    center: "中",
+    plateBare: "只有文字",
+    plateGlass: "半透明卡片",
+    platePaper: "纸卡片",
+    bare: "无底",
+    glass: "玻璃",
+    paper: "纸",
+    remove: "删除",
+    samples: "示例",
+    resize: "调整宽度",
+    ink: "字色",
+    inkClear: "恢复默认字色",
+    mark: "底色",
+    markClear: "去掉底色",
+    size: "调整这一块文字的字号",
+    pickNote: "先点一下要编辑的文字",
+    pickSize: "先点一下要调整的文字",
+    pickDelete: "先点一下要删除的文字",
+    samplesBack: "已放回示例。可以直接改成你正在记的词。",
+    noManifest: "读不到 backgrounds/manifest.json",
+    badManifest: "背景清单格式不对",
+    bgBroken: "背景图打不开",
+    noBg: "还没有背景",
+    noBgDir: "读不到背景目录",
+    addBgHint: "把图片放进 backgrounds，并写进 manifest.json。",
+    noWords: "词库没有载入",
+    noCanvas: "这台浏览器画不出壁纸",
+    blobFail: "生成图片失败",
+    making: "正在生成…",
+    downloaded: "已下载。在图片上按住 Control 点一下，选择「设定桌面图片」。",
+    downloadFail: "下载失败",
+    applying: "正在更换…",
+    helperEmpty: "助手没有返回结果",
+    applyFail: "更换失败",
+    applied: "已更换 Mac 屏幕。",
+    helperDown: "本机助手没开，已改为下载。在项目目录双击 start.command 后，就可以一键更换。",
+    notReady: "页面没有准备好",
+    textSeed: "在这里写一句英语。",
+    langBtn: "EN",
+  },
+  en: {
+    title: "Deskline · English wallpaper",
+    meta: "Screen {w} × {h} · Wallpaper {pw} × {ph} · Saved on this computer",
+    addJunior: "Junior 1500",
+    addSenior: "Senior 2000",
+    custom: "Custom",
+    addText: "Text",
+    addLine: "Sentence",
+    preview: "Preview",
+    download: "Download",
+    apply: "Change screen",
+    applyTitle: "Set the desktop with the local helper (⌘↩)",
+    screen: "Screen",
+    words: "Overseas words",
+    text: "Text",
+    native: "This Mac",
+    useCustom: "Use",
+    addJuniorCount: "1,500 words",
+    addSeniorCount: "2,000 words",
+    badSize: "Enter a width and height from 640 to 7680.",
+    prevBg: "Previous background",
+    nextBg: "Next background",
+    placeholder: "Double-click to edit<br />Drag to place it anywhere",
+    film: "Backgrounds",
+    format: "Formatting",
+    bold: "Bold ⌘B",
+    italic: "Italic ⌘I",
+    underline: "Underline ⌘U",
+    alignLeft: "Align left",
+    alignCenter: "Center",
+    left: "Left",
+    center: "Center",
+    plateBare: "Text only",
+    plateGlass: "Glass card",
+    platePaper: "Paper card",
+    bare: "None",
+    glass: "Glass",
+    paper: "Paper",
+    remove: "Delete",
+    samples: "Samples",
+    resize: "Resize width",
+    ink: "Text color",
+    inkClear: "Default text color",
+    mark: "Highlight",
+    markClear: "Clear highlight",
+    size: "Change the size of this text",
+    pickNote: "Select a note first",
+    pickSize: "Select a note to resize",
+    pickDelete: "Select a note to delete",
+    samplesBack: "Samples are back. Change them into words you are learning.",
+    noManifest: "Cannot read backgrounds/manifest.json",
+    badManifest: "The background list is not valid",
+    bgBroken: "Cannot open this background",
+    noBg: "No backgrounds yet",
+    noBgDir: "Cannot read the background folder",
+    addBgHint: "Add images to backgrounds and list them in manifest.json.",
+    noWords: "The word list did not load",
+    noCanvas: "This browser cannot draw the wallpaper",
+    blobFail: "Could not create the image",
+    making: "Making…",
+    downloaded: "Downloaded. Control-click the image and choose Set Desktop Picture.",
+    downloadFail: "Download failed",
+    applying: "Setting…",
+    helperEmpty: "The helper returned nothing",
+    applyFail: "Could not change the desktop",
+    applied: "The Mac desktop is updated.",
+    helperDown: "The local helper is not running, so the image was downloaded. Double-click start.command, then try again.",
+    notReady: "The page is not ready",
+    textSeed: "Write an English sentence here.",
+    langBtn: "中文",
+  },
+};
+
+function t(key) {
+  return (STR[lang] && STR[lang][key]) || STR.zh[key] || key;
 }
 
-function cardTemplate() {
-  return '<div class="word">lucid</div><div class="ipa">/ˈluː.sɪd/</div><div class="gloss">adj. 清楚易懂的</div><div class="ex">Keep the sentence short enough to stay lucid.</div>';
+function tf(key, vars) {
+  return t(key).replace(/\{(\w+)\}/g, (_, name) => (vars[name] == null ? "" : String(vars[name])));
+}
+
+// Gloss and phonetic fields in words.json are adapted from ECDICT (MIT). See words.LICENSE.
+async function loadWords() {
+  const response = await fetch("/words.json");
+  if (!response.ok) throw new Error(t("noWords"));
+  const data = await response.json();
+  if (!data || !Array.isArray(data.junior) || !Array.isArray(data.senior)) throw new Error(t("noWords"));
+  WORD_JUNIOR = data.junior;
+  WORD_SENIOR = data.senior;
+  WORD_INDEX = new Map();
+  for (const card of [...WORD_JUNIOR, ...WORD_SENIOR]) {
+    const key = String(card[0]).toLowerCase();
+    if (!WORD_INDEX.has(key)) WORD_INDEX.set(key, card);
+  }
+}
+
+function escapeHTML(text) {
+  return String(text).replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[ch]));
+}
+
+function glossText(card) {
+  const meaning = lang === "en" ? card[4] : card[3];
+  return `${card[2]} ${meaning}`.trim();
+}
+
+function cardHTML(card) {
+  const [word, ipa, , , , ex] = card;
+  const ipaHTML = ipa ? `<div class="ipa">${escapeHTML(ipa)}</div>` : "";
+  return `<div class="word">${escapeHTML(word)}</div>${ipaHTML}<div class="gloss">${escapeHTML(glossText(card))}</div><div class="ex">${escapeHTML(ex)}</div>`;
+}
+
+function cardByWord(word) {
+  return WORD_INDEX.get(String(word || "").toLowerCase()) || null;
+}
+
+function sampleNotes() {
+  const first = cardByWord("conversation");
+  const second = cardByWord("permission");
+  const notes = [];
+  if (first) notes.push({ x: 0.06, y: 0.1, w: 0.4, plate: "glass", size: 28, word: first[0], html: cardHTML(first) });
+  if (second) notes.push({ x: 0.54, y: 0.14, w: 0.4, plate: "paper", size: 28, word: second[0], html: cardHTML(second) });
+  notes.push({ x: 0.06, y: 0.68, w: 0.46, size: 34, html: sentenceTemplate() });
+  return notes;
+}
+
+function nextCard(deck) {
+  const cards = deck === "senior" ? WORD_SENIOR : WORD_JUNIOR;
+  if (!cards.length) return null;
+  const used = new Set(
+    [...board.querySelectorAll(".note .word")].map((el) => el.textContent.trim().toLowerCase()),
+  );
+  let pool = cards.filter((card) => !used.has(String(card[0]).toLowerCase()) && String(card[0]).toLowerCase() !== lastCardWord);
+  if (!pool.length) pool = cards.filter((card) => String(card[0]).toLowerCase() !== lastCardWord);
+  if (!pool.length) pool = cards;
+  const card = pool[Math.floor(Math.random() * pool.length)];
+  lastCardWord = String(card[0]).toLowerCase();
+  return card;
+}
+
+function nextCardPlate() {
+  const notes = board.querySelectorAll(".note");
+  const last = notes[notes.length - 1];
+  return last && last.dataset.plate === "glass" ? "paper" : "glass";
+}
+
+function sentenceTemplate() {
+  return '<div class="kicker">TO SAY</div><div class="lead">Say it once, in a real sentence.</div>';
+}
+
+function loadCanvasSize() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("deskline.size") || "null");
+    if (!saved) return;
+    const width = Math.round(Number(saved.w));
+    const height = Math.round(Number(saved.h));
+    if (width >= 640 && height >= 400 && width <= 7680 && height <= 4320) {
+      screenW = width;
+      screenH = height;
+      sizeKey = saved.key || "custom";
+    }
+  } catch {
+    /* keep the native screen */
+  }
+}
+
+function presetSize(preset) {
+  if (preset.key === "native") return [NATIVE_W, NATIVE_H];
+  return [preset.w, preset.h];
+}
+
+function setCanvasSize(width, height, key) {
+  const w = Math.round(Number(width));
+  const h = Math.round(Number(height));
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w < 640 || h < 400 || w > 7680 || h > 4320) {
+    toast(t("badSize"));
+    return;
+  }
+  screenW = w;
+  screenH = h;
+  sizeKey = key || "custom";
+  localStorage.setItem("deskline.size", JSON.stringify({ w, h, key: sizeKey }));
+  syncSizePicks();
+  fit();
+}
+
+function syncSizePicks() {
+  const select = document.getElementById("screenSize");
+  const known = SIZE_PRESETS.some((preset) => preset.key === sizeKey);
+  for (const preset of SIZE_PRESETS) {
+    const option = select.querySelector(`option[value="${preset.key}"]`);
+    if (!option) continue;
+    const [w, h] = presetSize(preset);
+    option.textContent = preset.key === "native" ? `${t("native")}  ${w}×${h}` : `${w}×${h}`;
+  }
+  const custom = select.querySelector('option[value="custom"]');
+  if (custom) custom.textContent = t("custom");
+  select.value = known ? sizeKey : "custom";
+  document.getElementById("customSize").hidden = select.value !== "custom";
+  const width = document.getElementById("customW");
+  const height = document.getElementById("customH");
+  if (document.activeElement !== width) width.value = String(screenW);
+  if (document.activeElement !== height) height.value = String(screenH);
+}
+
+function onScreenPick() {
+  const key = document.getElementById("screenSize").value;
+  if (key === "custom") {
+    sizeKey = "custom";
+    document.getElementById("customSize").hidden = false;
+    return;
+  }
+  const preset = SIZE_PRESETS.find((item) => item.key === key);
+  const [w, h] = presetSize(preset);
+  setCanvasSize(w, h, key);
+}
+
+function buildScreenPicks() {
+  const select = document.getElementById("screenSize");
+  select.replaceChildren();
+  for (const preset of SIZE_PRESETS) {
+    const option = document.createElement("option");
+    option.value = preset.key;
+    select.appendChild(option);
+  }
+  const custom = document.createElement("option");
+  custom.value = "custom";
+  select.appendChild(custom);
+  select.addEventListener("change", onScreenPick);
+  syncSizePicks();
 }
 
 function fit() {
@@ -115,8 +420,17 @@ function fit() {
   board.style.height = `${screenH}px`;
   board.style.transform = `scale(${scale})`;
   layoutAll();
+  updateMeta();
+}
+
+function updateMeta() {
   const dpr = window.devicePixelRatio || 1;
-  metaEl.textContent = `屏幕 ${screenW} × ${screenH} · 壁纸 ${Math.round(screenW * dpr)} × ${Math.round(screenH * dpr)} · 已保存在这台电脑上`;
+  metaEl.textContent = tf("meta", {
+    w: screenW,
+    h: screenH,
+    pw: Math.round(screenW * dpr),
+    ph: Math.round(screenH * dpr),
+  });
 }
 
 function layoutAll() {
@@ -149,13 +463,18 @@ function syncEmpty() {
 }
 
 function select(note) {
+  const format = document.getElementById("format");
+  const wasIdle = format.classList.contains("is-idle");
   if (selected && selected !== note) selected.classList.remove("selected");
   selected = note;
   if (note) {
     note.classList.add("selected");
     board.appendChild(note);
   }
+  format.classList.toggle("is-idle", !note);
   syncFormatState();
+  if (wasIdle === !note) return;
+  requestAnimationFrame(fit);
 }
 
 function endEdit() {
@@ -218,13 +537,19 @@ function createNote(data, quiet) {
     note.dataset.accent = data.accent;
     note.style.setProperty("--accent", data.accent);
   }
+  if (data.plate) note.dataset.plate = data.plate;
+  else if (data.plate == null && /class="word"/.test(data.html || "")) note.dataset.plate = "glass";
+  if (data.align === "center") note.dataset.align = "center";
   note.innerHTML = `
     <div class="handle" aria-hidden="true"><span></span></div>
     <div class="note-body" lang="en" spellcheck="true" contenteditable="false" autocorrect="off" autocapitalize="off"></div>
-    <button class="resize" type="button" aria-label="调整宽度" tabindex="-1"></button>
+    <button class="resize" type="button" aria-label="${escapeHTML(t("resize"))}" tabindex="-1"></button>
   `;
   const body = note.querySelector(".note-body");
-  body.innerHTML = data.html || "<div>Write an English sentence here.</div>";
+  body.innerHTML = data.html || `<div>${escapeHTML(t("textSeed"))}</div>`;
+  const wordEl = body.querySelector(".word");
+  const wordKey = String(data.word || (wordEl ? wordEl.textContent : "")).trim().toLowerCase();
+  if (wordKey && WORD_INDEX.has(wordKey)) note.dataset.word = wordKey;
   if (data.style) body.setAttribute("style", data.style);
   if (data.size && !body.style.fontSize) body.style.fontSize = `${data.size}px`;
   if (data.color && !body.style.color) body.style.color = data.color;
@@ -430,12 +755,43 @@ function syncFormatState() {
   document.getElementById("italic").setAttribute("aria-pressed", italic ? "true" : "false");
   const under = body ? getComputedStyle(body).textDecorationLine.includes("underline") : false;
   document.getElementById("underline").setAttribute("aria-pressed", under ? "true" : "false");
+  const plate = note ? note.dataset.plate || "" : "";
+  document.getElementById("plateBare").setAttribute("aria-pressed", note && !plate ? "true" : "false");
+  document.getElementById("plateGlass").setAttribute("aria-pressed", plate === "glass" ? "true" : "false");
+  document.getElementById("platePaper").setAttribute("aria-pressed", plate === "paper" ? "true" : "false");
+  const centered = note && note.dataset.align === "center";
+  document.getElementById("alignLeft").setAttribute("aria-pressed", note && !centered ? "true" : "false");
+  document.getElementById("alignCenter").setAttribute("aria-pressed", centered ? "true" : "false");
+}
+
+function setPlate(kind) {
+  const note = selectedNote();
+  if (!note) {
+    toast(t("pickNote"));
+    return;
+  }
+  if (kind) note.dataset.plate = kind;
+  else delete note.dataset.plate;
+  syncFormatState();
+  saveSoon();
+}
+
+function setAlign(align) {
+  const note = selectedNote();
+  if (!note) {
+    toast(t("pickNote"));
+    return;
+  }
+  if (align === "center") note.dataset.align = "center";
+  else delete note.dataset.align;
+  syncFormatState();
+  saveSoon();
 }
 
 function applyInline(command, value) {
   const note = selectedNote();
   if (!note) {
-    toast("先点一下要编辑的文字");
+    toast(t("pickNote"));
     return;
   }
   if (note.classList.contains("editing")) {
@@ -482,7 +838,7 @@ function applyWhole(note, command, value) {
 function applySize(px) {
   const note = selectedNote();
   if (!note) {
-    toast("先点一下要调整的文字");
+    toast(t("pickSize"));
     return;
   }
   note.querySelector(".note-body").style.fontSize = `${px}px`;
@@ -492,7 +848,7 @@ function applySize(px) {
 function removeSelected() {
   const note = selectedNote();
   if (!note) {
-    toast("先点一下要删除的文字");
+    toast(t("pickDelete"));
     return;
   }
   if (note.classList.contains("editing")) endEdit();
@@ -517,7 +873,7 @@ function restoreSamples() {
   fit();
   relaxOverlaps();
   save();
-  toast("已放回示例。可以直接改成你正在记的词。");
+  toast(t("samplesBack"));
 }
 
 function onPaste(event) {
@@ -579,12 +935,29 @@ function backgroundLabel(file) {
   return file.replace(/\.[^.]+$/, "").replace(/^\d+[-_ ]*/, "");
 }
 
+function bgLabel(bg) {
+  if (!bg) return "";
+  if (typeof bg === "string") return backgroundLabel(bg);
+  return lang === "en" ? bg.en || bg.zh : bg.zh || bg.en;
+}
+
 async function fetchBackgrounds() {
   const response = await fetch("/backgrounds/manifest.json");
-  if (!response.ok) throw new Error("读不到 backgrounds/manifest.json");
+  if (!response.ok) throw new Error(t("noManifest"));
   const data = await response.json();
-  if (!Array.isArray(data)) throw new Error("背景清单格式不对");
-  return data.filter((name) => typeof name === "string" && name && !name.startsWith("."));
+  if (!Array.isArray(data)) throw new Error(t("badManifest"));
+  return data.map((item) => {
+    if (typeof item === "string") {
+      const label = backgroundLabel(item);
+      return { file: item, zh: label, en: label };
+    }
+    if (!item || typeof item.file !== "string" || !item.file || item.file.startsWith(".")) return null;
+    return {
+      file: item.file,
+      zh: item.zh || backgroundLabel(item.file),
+      en: item.en || item.zh || backgroundLabel(item.file),
+    };
+  }).filter(Boolean);
 }
 
 function ensureImage(url) {
@@ -593,7 +966,7 @@ function ensureImage(url) {
   const pending = new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("背景图打不开"));
+    image.onerror = () => reject(new Error(t("bgBroken")));
     image.src = url;
   });
   imageCache.set(url, pending);
@@ -619,16 +992,34 @@ function tuneInk(image) {
   board.style.setProperty("--muted", light ? "#5c5348" : "#ddd4c6");
 }
 
+function renderFilmstrip() {
+  const film = document.getElementById("film");
+  film.replaceChildren();
+  backgrounds.forEach((bg, index) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "thumb";
+    const label = bgLabel(bg);
+    btn.style.backgroundImage = `url("${backgroundURL(bg.file)}")`;
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("aria-pressed", index === bgIndex ? "true" : "false");
+    btn.addEventListener("click", () => applyBackgroundFile(bg.file));
+    film.appendChild(btn);
+  });
+}
+
 function updateCaption() {
   const empty = backgrounds.length === 0;
   bgPrev.disabled = empty;
   bgNext.disabled = empty;
+  renderFilmstrip();
   if (empty) {
-    bgCaption.textContent = "backgrounds/manifest.json 里还没有图片";
+    bgCaption.textContent = t("noBg");
     return;
   }
-  const file = backgrounds[bgIndex];
-  bgCaption.textContent = `${backgroundLabel(file)}  ·  ${bgIndex + 1} / ${backgrounds.length}`;
+  const bg = backgrounds[bgIndex];
+  bgCaption.textContent = `${bgLabel(bg)}  ${bgIndex + 1}/${backgrounds.length}`;
 }
 
 function applyBackgroundFile(name, quiet) {
@@ -639,9 +1030,9 @@ function applyBackgroundFile(name, quiet) {
     updateCaption();
     return;
   }
-  const found = backgrounds.indexOf(name);
+  const found = backgrounds.findIndex((bg) => bg.file === name);
   bgIndex = found >= 0 ? found : 0;
-  const file = backgrounds[bgIndex];
+  const file = backgrounds[bgIndex].file;
   bgId = file;
   const url = backgroundURL(file);
   board.style.backgroundColor = "#141311";
@@ -657,20 +1048,32 @@ function applyBackgroundFile(name, quiet) {
 async function stepBackground(delta) {
   try {
     const files = await fetchBackgrounds();
-    const current = backgrounds[bgIndex];
+    const current = backgrounds[bgIndex] && backgrounds[bgIndex].file;
     backgrounds = files;
-    const index = backgrounds.indexOf(current);
+    const index = backgrounds.findIndex((bg) => bg.file === current);
     bgIndex = index >= 0 ? index : 0;
   } catch (err) {
-    toast(err.message || "读不到背景目录");
+    toast(err.message || t("noBgDir"));
   }
   if (!backgrounds.length) {
     applyBackgroundFile("", true);
-    toast("把图片放进 backgrounds，并写进 manifest.json。", 4800);
+    toast(t("addBgHint"), 4800);
     return;
   }
   const next = (bgIndex + delta + backgrounds.length) % backgrounds.length;
-  applyBackgroundFile(backgrounds[next]);
+  applyBackgroundFile(backgrounds[next].file);
+}
+
+function fillRoundRect(ctx, x, y, w, h, r) {
+  const radius = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function paintCover(ctx, image, width, height) {
@@ -686,7 +1089,7 @@ function buildChrome() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = color ? "swatch" : "swatch clear";
-    btn.title = color ? "字色" : "恢复默认字色";
+    btn.title = color ? t("ink") : t("inkClear");
     if (color) btn.style.background = color;
     btn.addEventListener("click", () => applyInline("foreColor", color));
     inkBox.appendChild(btn);
@@ -696,18 +1099,18 @@ function buildChrome() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = color ? "swatch" : "swatch clear";
-    btn.title = color ? "底色" : "去掉底色";
+    btn.title = color ? t("mark") : t("markClear");
     if (color) btn.style.background = color;
     btn.addEventListener("click", () => applyInline("hiliteColor", color || "transparent"));
     markBox.appendChild(btn);
   }
-  const sizeBox = document.getElementById("sizes");
+  const sizeBox = document.getElementById("fontSizes");
   for (const size of SIZES) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "size";
     btn.textContent = String(size);
-    btn.title = "调整这一块文字的字号";
+    btn.title = t("size");
     btn.addEventListener("click", () => applySize(size));
     sizeBox.appendChild(btn);
   }
@@ -849,7 +1252,7 @@ async function renderWallpaper() {
   canvas.width = canvasW;
   canvas.height = canvasH;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("这台浏览器画不出壁纸");
+  if (!ctx) throw new Error(t("noCanvas"));
   ctx.fillStyle = "#141311";
   ctx.fillRect(0, 0, canvasW, canvasH);
   if (bgId) {
@@ -861,7 +1264,18 @@ async function renderWallpaper() {
   }
 
   for (const note of board.querySelectorAll(".note")) {
-    if (note.dataset.accent) {
+    const plated = note.dataset.plate === "glass" || note.dataset.plate === "paper";
+    if (plated) {
+      ctx.fillStyle = note.dataset.plate === "paper" ? "rgba(247, 242, 232, 0.94)" : "rgba(12, 10, 8, 0.5)";
+      fillRoundRect(
+        ctx,
+        (parseFloat(note.style.left) || 0) * exportScale,
+        (parseFloat(note.style.top) || 0) * exportScale,
+        note.offsetWidth * exportScale,
+        note.offsetHeight * exportScale,
+        22 * exportScale,
+      );
+    } else if (note.dataset.accent) {
       ctx.fillStyle = note.dataset.accent;
       ctx.fillRect(
         (parseFloat(note.style.left) || 0) * exportScale,
@@ -898,9 +1312,11 @@ async function renderWallpaper() {
       const x = run.rect.x * exportScale;
       const y = (run.rect.y + leading) * exportScale;
       ctx.save();
-      ctx.shadowColor = board.dataset.light === "1" ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.55)";
-      ctx.shadowBlur = 8 * exportScale;
-      ctx.shadowOffsetY = exportScale;
+      if (!note.dataset.plate) {
+        ctx.shadowColor = board.dataset.light === "1" ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.55)";
+        ctx.shadowBlur = 8 * exportScale;
+        ctx.shadowOffsetY = exportScale;
+      }
       ctx.fillText(run.text, x, y);
       ctx.restore();
       if (run.style.underline) {
@@ -915,7 +1331,7 @@ function canvasBlob(canvas) {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob);
-      else reject(new Error("生成图片失败"));
+      else reject(new Error(t("blobFail")));
     }, "image/png");
   });
 }
@@ -937,18 +1353,47 @@ async function makeBlob() {
   return canvasBlob(await renderWallpaper());
 }
 
+const HELPER_URL = "http://127.0.0.1:47321";
+
 async function downloadWallpaper() {
-  const previous = applyBtn.textContent;
-  applyBtn.disabled = true;
-  applyBtn.textContent = "正在生成…";
+  const button = document.getElementById("download");
+  button.disabled = true;
+  button.textContent = t("making");
   try {
     downloadBlob(await makeBlob());
-    toast("已下载。在图片上按住 Control 点一下，选择「设定桌面图片」。", 5200);
+    toast(t("downloaded"), 5200);
   } catch (err) {
-    toast(err.message || "下载失败", 6400);
+    toast(err.message || t("downloadFail"), 6400);
+  } finally {
+    button.disabled = false;
+    button.textContent = t("download");
+  }
+}
+
+async function applyWallpaper() {
+  applyBtn.disabled = true;
+  applyBtn.textContent = t("applying");
+  let blob;
+  try {
+    blob = await makeBlob();
+    const response = await fetch(`${HELPER_URL}/wallpaper`, {
+      method: "POST",
+      headers: { "Content-Type": "image/png" },
+      body: blob,
+    });
+    const data = await response.json().catch(() => ({ ok: false, error: t("helperEmpty") }));
+    if (!response.ok || !data.ok) throw new Error(data.error || t("applyFail"));
+    toast(t("applied"));
+  } catch (err) {
+    if (blob && (err instanceof TypeError || String(err.message || "").includes("Failed to fetch"))) {
+      downloadBlob(blob);
+      toast(t("helperDown"), 6400);
+    } else {
+      toast(err.message || t("applyFail"), 6400);
+    }
   } finally {
     applyBtn.disabled = false;
-    applyBtn.textContent = previous;
+    applyBtn.textContent = t("apply");
   }
 }
 
@@ -956,7 +1401,7 @@ function onKeyDown(event) {
   const typing = selected && selected.classList.contains("editing");
   if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
     event.preventDefault();
-    downloadWallpaper();
+    applyWallpaper();
     return;
   }
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
@@ -980,6 +1425,11 @@ function onKeyDown(event) {
     return;
   }
   if (event.key === "Escape") {
+    if (document.body.classList.contains("previewing")) {
+      document.body.classList.remove("previewing");
+      requestAnimationFrame(() => requestAnimationFrame(fit));
+      return;
+    }
     endEdit();
     return;
   }
@@ -994,50 +1444,172 @@ function onKeyDown(event) {
   }
 }
 
+function refreshGlosses() {
+  board.querySelectorAll(".note[data-word]").forEach((note) => {
+    const card = WORD_INDEX.get(note.dataset.word);
+    const gloss = note.querySelector(".gloss");
+    if (!card || !gloss) return;
+    gloss.textContent = glossText(card);
+  });
+}
+
+function applyLanguage() {
+  document.documentElement.lang = lang === "en" ? "en" : "zh-CN";
+  document.title = t("title");
+  const text = {
+    addJunior: "addJunior",
+    addSenior: "addSenior",
+    addText: "addText",
+    addLine: "addLine",
+    useCustom: "useCustom",
+    preview: "preview",
+    download: "download",
+    apply: "apply",
+    alignLeft: "left",
+    alignCenter: "center",
+    plateBare: "bare",
+    plateGlass: "glass",
+    platePaper: "paper",
+    remove: "remove",
+    samples: "samples",
+  };
+  for (const [id, key] of Object.entries(text)) {
+    const el = document.getElementById(id);
+    if (el && !el.disabled) el.textContent = t(key);
+  }
+  const titles = {
+    apply: "applyTitle",
+    bold: "bold",
+    italic: "italic",
+    underline: "underline",
+    alignLeft: "alignLeft",
+    alignCenter: "alignCenter",
+    plateBare: "plateBare",
+    plateGlass: "plateGlass",
+    platePaper: "platePaper",
+  };
+  for (const [id, key] of Object.entries(titles)) {
+    const el = document.getElementById(id);
+    if (el) el.title = t(key);
+  }
+  document.getElementById("screenHeading").textContent = t("screen");
+  document.getElementById("wordsHeading").textContent = t("words");
+  document.getElementById("textHeading").textContent = t("text");
+  document.getElementById("customW").setAttribute("aria-label", lang === "en" ? "Width" : "宽度");
+  document.getElementById("customH").setAttribute("aria-label", lang === "en" ? "Height" : "高度");
+  const language = document.getElementById("lang");
+  language.value = lang;
+  language.setAttribute("aria-label", lang === "en" ? "Language" : "语言");
+  syncSizePicks();
+  document.getElementById("bgPrev").setAttribute("aria-label", t("prevBg"));
+  document.getElementById("bgNext").setAttribute("aria-label", t("nextBg"));
+  document.getElementById("film").setAttribute("aria-label", t("film"));
+  document.getElementById("format").setAttribute("aria-label", t("format"));
+  placeholder.innerHTML = t("placeholder");
+  document.querySelectorAll(".resize").forEach((el) => el.setAttribute("aria-label", t("resize")));
+  document.querySelectorAll("#inkSwatches .swatch").forEach((btn) => {
+    btn.title = btn.classList.contains("clear") ? t("inkClear") : t("ink");
+  });
+  document.querySelectorAll("#markSwatches .swatch").forEach((btn) => {
+    btn.title = btn.classList.contains("clear") ? t("markClear") : t("mark");
+  });
+  document.querySelectorAll("#fontSizes .size").forEach((btn) => {
+    btn.title = t("size");
+  });
+  refreshGlosses();
+  updateMeta();
+  updateCaption();
+}
+
+function setLanguage(next) {
+  lang = next === "en" ? "en" : "zh";
+  localStorage.setItem("deskline.lang", lang);
+  endEdit();
+  applyLanguage();
+}
+
 async function init() {
+  loadCanvasSize();
   buildChrome();
+  buildScreenPicks();
+  try {
+    await loadWords();
+  } catch (err) {
+    toast(err.message || t("noWords"));
+  }
   const saved = loadState();
   if (saved) saved.notes.forEach((note) => createNote(note, true));
   else sampleNotes().forEach((note) => createNote(note, true));
+  applyLanguage();
   fit();
   if (!saved) relaxOverlaps();
   try {
     backgrounds = await fetchBackgrounds();
   } catch (err) {
     backgrounds = [];
-    toast(err.message || "读不到背景目录");
+    toast(err.message || t("noBgDir"));
   }
-  const wanted = saved && backgrounds.includes(saved.bg) ? saved.bg : backgrounds[0];
+  const names = backgrounds.map((bg) => bg.file);
+  const wanted = saved && names.includes(saved.bg) ? saved.bg : names[0];
   applyBackgroundFile(wanted || "", true);
   if (!saved) save();
   document.getElementById("format").addEventListener("mousedown", (event) => {
     if (event.target.closest("button")) event.preventDefault();
   });
+  document.getElementById("customSize").addEventListener("submit", (event) => {
+    event.preventDefault();
+    setCanvasSize(document.getElementById("customW").value, document.getElementById("customH").value, "custom");
+  });
+  document.getElementById("lang").addEventListener("change", (event) => setLanguage(event.target.value));
   document.getElementById("addText").addEventListener("click", () => {
-    const note = createNote({ x: 0.08, y: 0.12, w: 0.34, html: "<div>Write an English sentence here.</div>", size: 32 });
+    const note = createNote({ x: 0.08, y: 0.12, w: 0.34, html: `<div>${escapeHTML(t("textSeed"))}</div>`, size: 32 });
     placeWithoutOverlap(note);
     beginEdit(note);
   });
-  document.getElementById("addCard").addEventListener("click", () => {
-    const note = createNote({ x: 0.08, y: 0.12, w: 0.34, html: cardTemplate(), size: 28, accent: "#e0a15a" });
+  function addWordCard(deck) {
+    const card = nextCard(deck);
+    if (!card) {
+      toast(t("noWords"));
+      return;
+    }
+    const note = createNote({ x: 0.08, y: 0.12, w: 0.4, html: cardHTML(card), word: card[0], size: 28, plate: nextCardPlate() });
+    placeWithoutOverlap(note);
+  }
+  document.getElementById("addJunior").addEventListener("click", () => addWordCard("junior"));
+  document.getElementById("addSenior").addEventListener("click", () => addWordCard("senior"));
+  document.getElementById("addLine").addEventListener("click", () => {
+    const note = createNote({ x: 0.08, y: 0.62, w: 0.46, html: sentenceTemplate(), size: 34 });
     placeWithoutOverlap(note);
     beginEdit(note);
+  });
+  document.getElementById("preview").addEventListener("click", () => {
+    const on = document.body.classList.toggle("previewing");
+    document.getElementById("preview").setAttribute("aria-pressed", on ? "true" : "false");
+    endEdit();
+    if (on) select(null);
+    requestAnimationFrame(() => requestAnimationFrame(fit));
   });
   document.getElementById("bold").addEventListener("click", () => applyInline("bold"));
   document.getElementById("italic").addEventListener("click", () => applyInline("italic"));
   document.getElementById("underline").addEventListener("click", () => applyInline("underline"));
+  document.getElementById("alignLeft").addEventListener("click", () => setAlign("left"));
+  document.getElementById("alignCenter").addEventListener("click", () => setAlign("center"));
+  document.getElementById("plateBare").addEventListener("click", () => setPlate(""));
+  document.getElementById("plateGlass").addEventListener("click", () => setPlate("glass"));
+  document.getElementById("platePaper").addEventListener("click", () => setPlate("paper"));
   document.getElementById("remove").addEventListener("click", removeSelected);
   document.getElementById("samples").addEventListener("click", restoreSamples);
+  document.getElementById("download").addEventListener("click", downloadWallpaper);
   bgPrev.addEventListener("click", () => stepBackground(-1));
   bgNext.addEventListener("click", () => stepBackground(1));
-  applyBtn.addEventListener("click", downloadWallpaper);
+  applyBtn.addEventListener("click", applyWallpaper);
   document.addEventListener("pointermove", onPointerMove);
   document.addEventListener("pointerup", onPointerUp);
   document.addEventListener("pointercancel", onPointerUp);
   document.addEventListener("selectionchange", rememberSelection);
   document.addEventListener("keydown", onKeyDown);
   document.addEventListener("pointerdown", (event) => {
-    if (event.target.closest(".note") || event.target.closest(".format") || event.target.closest(".top") || event.target.closest(".bg-nav")) return;
+    if (event.target.closest(".note") || event.target.closest(".side") || event.target.closest(".top") || event.target.closest(".dock")) return;
     endEdit();
     select(null);
   });
@@ -1046,5 +1618,5 @@ async function init() {
 
 init().catch((err) => {
   console.error(err);
-  toast("页面没有准备好");
+  toast(t("notReady"));
 });
