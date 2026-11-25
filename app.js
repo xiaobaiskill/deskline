@@ -994,19 +994,45 @@ function tuneInk(image) {
 
 function renderFilmstrip() {
   const film = document.getElementById("film");
-  film.replaceChildren();
-  backgrounds.forEach((bg, index) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "thumb";
-    const label = bgLabel(bg);
-    btn.style.backgroundImage = `url("${backgroundURL(bg.file)}")`;
+  const same = film.childElementCount === backgrounds.length
+    && [...film.children].every((btn, index) => btn.dataset.file === backgrounds[index].file);
+  if (!same) {
+    film.replaceChildren();
+    backgrounds.forEach((bg) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "thumb";
+      btn.dataset.file = bg.file;
+      btn.style.backgroundImage = `url("${backgroundURL(bg.file)}")`;
+      btn.addEventListener("click", () => applyBackgroundFile(bg.file));
+      film.appendChild(btn);
+    });
+  }
+  film.querySelectorAll(".thumb").forEach((btn, index) => {
+    const label = bgLabel(backgrounds[index]);
     btn.title = label;
     btn.setAttribute("aria-label", label);
     btn.setAttribute("aria-pressed", index === bgIndex ? "true" : "false");
-    btn.addEventListener("click", () => applyBackgroundFile(bg.file));
-    film.appendChild(btn);
   });
+  centerActiveThumb(film.dataset.ready === "1");
+  film.dataset.ready = "1";
+}
+
+function centerActiveThumb(smooth) {
+  const run = () => {
+    const film = document.getElementById("film");
+    const active = film.querySelector('.thumb[aria-pressed="true"]');
+    if (!active || film.clientWidth <= 0) return;
+    const pad = Math.max(0, (film.clientWidth - active.offsetWidth) / 2);
+    film.style.paddingLeft = `${pad}px`;
+    film.style.paddingRight = `${pad}px`;
+    const filmRect = film.getBoundingClientRect();
+    const activeRect = active.getBoundingClientRect();
+    const delta = activeRect.left + activeRect.width / 2 - (filmRect.left + filmRect.width / 2);
+    film.scrollTo({ left: Math.max(0, film.scrollLeft + delta), behavior: smooth ? "smooth" : "auto" });
+  };
+  if (smooth) run();
+  else requestAnimationFrame(run);
 }
 
 function updateCaption() {
@@ -1025,7 +1051,8 @@ function updateCaption() {
 function applyBackgroundFile(name, quiet) {
   if (!backgrounds.length) {
     bgId = "";
-    board.style.backgroundImage = "none";
+    bgToken += 1;
+    document.getElementById("bgStack").replaceChildren();
     board.dataset.light = "0";
     updateCaption();
     return;
@@ -1035,14 +1062,31 @@ function applyBackgroundFile(name, quiet) {
   const file = backgrounds[bgIndex].file;
   bgId = file;
   const url = backgroundURL(file);
-  board.style.backgroundColor = "#141311";
-  board.style.backgroundImage = `url("${url}")`;
-  board.style.backgroundSize = "cover";
-  board.style.backgroundPosition = "center";
-  board.style.backgroundRepeat = "no-repeat";
+  showBoardBackground(url);
   updateCaption();
   ensureImage(url).then(tuneInk).catch(() => {});
   if (!quiet) save();
+}
+
+let bgToken = 0;
+
+function showBoardBackground(url) {
+  const stack = document.getElementById("bgStack");
+  const token = ++bgToken;
+  const layer = document.createElement("div");
+  layer.className = "bg-layer";
+  layer.dataset.token = String(token);
+  layer.style.backgroundImage = `url("${url}")`;
+  stack.appendChild(layer);
+  requestAnimationFrame(() => layer.classList.add("is-shown"));
+  [...stack.children].forEach((el) => {
+    if (el !== layer) el.classList.remove("is-shown");
+  });
+  window.setTimeout(() => {
+    [...stack.querySelectorAll(".bg-layer")].forEach((el) => {
+      if (el.dataset.token !== String(bgToken)) el.remove();
+    });
+  }, 520);
 }
 
 async function stepBackground(delta) {
@@ -1613,7 +1657,10 @@ async function init() {
     endEdit();
     select(null);
   });
-  window.addEventListener("resize", fit);
+  window.addEventListener("resize", () => {
+    fit();
+    centerActiveThumb(false);
+  });
 }
 
 init().catch((err) => {
