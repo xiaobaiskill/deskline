@@ -1,3 +1,4 @@
+/* Deskline 20261126.1 */
 const STORAGE_KEY = "deskline.v1";
 
 const INKS = ["", "#f4efe6", "#1c1915", "#e0a15a", "#e07a5f", "#8fbf9f", "#7eb6d6", "#e3b4d0"];
@@ -108,9 +109,15 @@ const STR = {
     addText: "文本",
     addLine: "句子",
     preview: "预览",
-    download: "下载",
+    download: "下载换屏小助手",
     apply: "更换屏幕",
     applyTitle: "交给本机助手设为桌面（⌘↩）",
+    helperDownMac: "已下载。解压后双击 Start.command，它会在后台运行。然后回到网页点「更换屏幕」。",
+    helperDownWin: "已下载。双击 Deskline-Windows.exe，确认后它会在后台运行。若系统拦截，选「更多信息」再运行。然后点「更换屏幕」。",
+    helperNeed: "换屏小助手还没在后台运行。下载后打开它，它会留在后台，然后再点「更换屏幕」。",
+    helperPromptGo: "下载换屏小助手",
+    helperPromptClose: "关闭",
+    helperOther: "目前只能在 Mac 和 Windows 上一键更换屏幕。",
     screen: "屏幕设置",
     words: "海外单词",
     text: "文本",
@@ -159,13 +166,11 @@ const STR = {
     noCanvas: "这台浏览器画不出壁纸",
     blobFail: "生成图片失败",
     making: "正在生成…",
-    downloaded: "已下载。在图片上按住 Control 点一下，选择「设定桌面图片」。",
     downloadFail: "下载失败",
     applying: "正在更换…",
     helperEmpty: "助手没有返回结果",
     applyFail: "更换失败",
-    applied: "已更换 Mac 屏幕。",
-    helperDown: "本机助手没开，已改为下载。在项目目录双击 start.command 后，就可以一键更换。",
+    applied: "已更换屏幕。",
     notReady: "页面没有准备好",
     textSeed: "在这里写一句英语。",
     langBtn: "EN",
@@ -179,9 +184,15 @@ const STR = {
     addText: "Text",
     addLine: "Sentence",
     preview: "Preview",
-    download: "Download",
+    download: "Download helper",
     apply: "Change screen",
     applyTitle: "Set the desktop with the local helper (⌘↩)",
+    helperDownMac: "Downloaded. Unzip it and double-click Start.command. It keeps running in the background. Then choose Change screen.",
+    helperDownWin: "Downloaded. Double-click Deskline-Windows.exe and confirm. It keeps running in the background. If Windows blocks it, choose More info, then Run.",
+    helperNeed: "The screen helper is not running in the background. Download it and open it. It stays in the background. Then choose Change screen again.",
+    helperPromptGo: "Download helper",
+    helperPromptClose: "Close",
+    helperOther: "One-click desktop change is available on Mac and Windows.",
     screen: "Screen",
     words: "Overseas words",
     text: "Text",
@@ -230,13 +241,11 @@ const STR = {
     noCanvas: "This browser cannot draw the wallpaper",
     blobFail: "Could not create the image",
     making: "Making…",
-    downloaded: "Downloaded. Control-click the image and choose Set Desktop Picture.",
     downloadFail: "Download failed",
     applying: "Setting…",
     helperEmpty: "The helper returned nothing",
     applyFail: "Could not change the desktop",
-    applied: "The Mac desktop is updated.",
-    helperDown: "The local helper is not running, so the image was downloaded. Double-click start.command, then try again.",
+    applied: "The desktop is updated.",
     notReady: "The page is not ready",
     textSeed: "Write an English sentence here.",
     langBtn: "中文",
@@ -1380,17 +1389,6 @@ function canvasBlob(canvas) {
   });
 }
 
-function downloadBlob(blob) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "deskline-wallpaper.png";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1500);
-}
-
 async function makeBlob() {
   endEdit();
   await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -1399,22 +1397,64 @@ async function makeBlob() {
 
 const HELPER_URL = "http://127.0.0.1:47321";
 
-async function downloadWallpaper() {
-  const button = document.getElementById("download");
-  button.disabled = true;
-  button.textContent = t("making");
+function detectOS() {
+  const hinted = navigator.userAgentData && navigator.userAgentData.platform;
+  const blob = `${hinted || ""} ${navigator.platform || ""} ${navigator.userAgent || ""}`;
+  if (/Windows|Win32|Win64/i.test(blob)) return "windows";
+  if (/Mac|Macintosh/i.test(blob)) return "mac";
+  return "other";
+}
+
+function helperFile() {
+  if (detectOS() === "windows") return "helpers/Deskline-Windows.exe";
+  if (detectOS() === "mac") return "helpers/Deskline-Mac.zip";
+  return "";
+}
+
+function helperHint() {
+  if (detectOS() === "windows") return t("helperDownWin");
+  if (detectOS() === "mac") return t("helperDownMac");
+  return t("helperOther");
+}
+
+async function helperAlive() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 1200);
   try {
-    downloadBlob(await makeBlob());
-    toast(t("downloaded"), 5200);
-  } catch (err) {
-    toast(err.message || t("downloadFail"), 6400);
+    const response = await fetch(`${HELPER_URL}/health`, { signal: controller.signal });
+    return response.ok;
+  } catch {
+    return false;
   } finally {
-    button.disabled = false;
-    button.textContent = t("download");
+    clearTimeout(timer);
   }
 }
 
+function showHelperPrompt() {
+  document.getElementById("helperPromptText").textContent = t("helperNeed");
+  document.getElementById("helperPrompt").hidden = false;
+}
+
+function downloadHelper() {
+  const file = helperFile();
+  if (!file) {
+    toast(t("helperOther"), 6400);
+    return false;
+  }
+  const link = document.createElement("a");
+  link.href = file;
+  link.download = file.split("/").pop();
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  return true;
+}
+
 async function applyWallpaper() {
+  if (!(await helperAlive())) {
+    showHelperPrompt();
+    return;
+  }
   applyBtn.disabled = true;
   applyBtn.textContent = t("applying");
   let blob;
@@ -1429,9 +1469,8 @@ async function applyWallpaper() {
     if (!response.ok || !data.ok) throw new Error(data.error || t("applyFail"));
     toast(t("applied"));
   } catch (err) {
-    if (blob && (err instanceof TypeError || String(err.message || "").includes("Failed to fetch"))) {
-      downloadBlob(blob);
-      toast(t("helperDown"), 6400);
+    if (err instanceof TypeError || String(err.message || "").includes("Failed to fetch")) {
+      showHelperPrompt();
     } else {
       toast(err.message || t("applyFail"), 6400);
     }
@@ -1508,6 +1547,8 @@ function applyLanguage() {
     useCustom: "useCustom",
     preview: "preview",
     download: "download",
+    helperPromptGo: "helperPromptGo",
+    helperPromptClose: "helperPromptClose",
     apply: "apply",
     alignLeft: "left",
     alignCenter: "center",
@@ -1547,6 +1588,8 @@ function applyLanguage() {
   syncSizePicks();
   document.getElementById("bgPrev").setAttribute("aria-label", t("prevBg"));
   document.getElementById("bgNext").setAttribute("aria-label", t("nextBg"));
+  const prompt = document.getElementById("helperPrompt");
+  if (!prompt.hidden) document.getElementById("helperPromptText").textContent = t("helperNeed");
   document.getElementById("film").setAttribute("aria-label", t("film"));
   document.getElementById("format").setAttribute("aria-label", t("format"));
   placeholder.innerHTML = t("placeholder");
@@ -1643,7 +1686,16 @@ async function init() {
   document.getElementById("platePaper").addEventListener("click", () => setPlate("paper"));
   document.getElementById("remove").addEventListener("click", removeSelected);
   document.getElementById("samples").addEventListener("click", restoreSamples);
-  document.getElementById("download").addEventListener("click", downloadWallpaper);
+  document.getElementById("download").addEventListener("click", () => {
+    if (downloadHelper()) toast(helperHint(), 8000);
+  });
+  document.getElementById("helperPromptGo").addEventListener("click", () => {
+    if (!downloadHelper()) return;
+    document.getElementById("helperPromptText").textContent = helperHint();
+  });
+  document.getElementById("helperPromptClose").addEventListener("click", () => {
+    document.getElementById("helperPrompt").hidden = true;
+  });
   bgPrev.addEventListener("click", () => stepBackground(-1));
   bgNext.addEventListener("click", () => stepBackground(1));
   applyBtn.addEventListener("click", applyWallpaper);

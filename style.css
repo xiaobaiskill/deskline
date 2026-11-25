@@ -1,3 +1,4 @@
+/* Deskline 20261126.1 */
 :root {
   --desk: #0c0b0a;
   --cream: #f3ecdf;
@@ -548,6 +549,38 @@ button:focus-visible {
 
 .note:hover .resize,
 .note.selected .resize { opacity: 1; }
+
+.prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.prompt[hidden] { display: none !important; }
+
+.prompt-card {
+  width: min(440px, 100%);
+  border: 1px solid rgba(243, 236, 223, 0.18);
+  border-radius: 18px;
+  background: #1a1612;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  padding: 20px;
+}
+
+.prompt-card p {
+  margin: 0 0 16px;
+  line-height: 1.55;
+}
+
+.prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
 
 #toast {
   position: fixed;

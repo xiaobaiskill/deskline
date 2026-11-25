@@ -1,0 +1,8 @@
+Deskline Mac 助手
+
+这份程序同时支持 Intel 和 Apple 芯片，不用分两个版本。
+
+1. 双击 Start.command。
+2. 若系统提示无法验证开发者，在 Start.command 上按住 Control 点一下，选择「打开」。
+3. 它会在后台运行。回到网页，再点一次「更换屏幕」。
+
