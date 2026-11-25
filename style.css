@@ -1,4 +1,4 @@
-/* Deskline 20261126.1 */
+/* Deskline 20261126.2 */
 :root {
   --desk: #0c0b0a;
   --cream: #f3ecdf;
@@ -219,6 +219,7 @@ button, input { font: inherit; color: inherit; }
   display: grid;
   place-items: center;
   padding: 12px;
+  overflow: hidden;
 }
 
 .bg-nav {

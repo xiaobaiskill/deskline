@@ -1,4 +1,4 @@
-/* Deskline 20261126.1 */
+/* Deskline 20261126.2 */
 const STORAGE_KEY = "deskline.v1";
 
 const INKS = ["", "#f4efe6", "#1c1915", "#e0a15a", "#e07a5f", "#8fbf9f", "#7eb6d6", "#e3b4d0"];
@@ -1639,6 +1639,7 @@ async function init() {
   const names = backgrounds.map((bg) => bg.file);
   const wanted = saved && names.includes(saved.bg) ? saved.bg : names[0];
   applyBackgroundFile(wanted || "", true);
+  fit();
   if (!saved) save();
   document.getElementById("format").addEventListener("mousedown", (event) => {
     if (event.target.closest("button")) event.preventDefault();
@@ -1713,6 +1714,7 @@ async function init() {
     fit();
     centerActiveThumb(false);
   });
+  new ResizeObserver(() => fit()).observe(stage);
 }
 
 init().catch((err) => {
