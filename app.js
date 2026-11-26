@@ -1,4 +1,4 @@
-/* Deskline 20261126.2 */
+/* Deskline 20261126.3 */
 const STORAGE_KEY = "deskline.v1";
 
 const INKS = ["", "#f4efe6", "#1c1915", "#e0a15a", "#e07a5f", "#8fbf9f", "#7eb6d6", "#e3b4d0"];
@@ -109,6 +109,7 @@ const STR = {
     addText: "文本",
     addLine: "句子",
     preview: "预览",
+    previewExit: "退出预览",
     download: "下载换屏小助手",
     apply: "更换屏幕",
     applyTitle: "交给本机助手设为桌面（⌘↩）",
@@ -184,6 +185,7 @@ const STR = {
     addText: "Text",
     addLine: "Sentence",
     preview: "Preview",
+    previewExit: "Exit preview",
     download: "Download helper",
     apply: "Change screen",
     applyTitle: "Set the desktop with the local helper (⌘↩)",
@@ -1430,6 +1432,13 @@ async function helperAlive() {
   }
 }
 
+function syncPreviewButton() {
+  const button = document.getElementById("preview");
+  const on = document.body.classList.contains("previewing");
+  button.textContent = on ? t("previewExit") : t("preview");
+  button.setAttribute("aria-pressed", on ? "true" : "false");
+}
+
 function showHelperPrompt() {
   document.getElementById("helperPromptText").textContent = t("helperNeed");
   document.getElementById("helperPrompt").hidden = false;
@@ -1510,6 +1519,7 @@ function onKeyDown(event) {
   if (event.key === "Escape") {
     if (document.body.classList.contains("previewing")) {
       document.body.classList.remove("previewing");
+      syncPreviewButton();
       requestAnimationFrame(() => requestAnimationFrame(fit));
       return;
     }
@@ -1545,7 +1555,6 @@ function applyLanguage() {
     addText: "addText",
     addLine: "addLine",
     useCustom: "useCustom",
-    preview: "preview",
     download: "download",
     helperPromptGo: "helperPromptGo",
     helperPromptClose: "helperPromptClose",
@@ -1590,6 +1599,7 @@ function applyLanguage() {
   document.getElementById("bgNext").setAttribute("aria-label", t("nextBg"));
   const prompt = document.getElementById("helperPrompt");
   if (!prompt.hidden) document.getElementById("helperPromptText").textContent = t("helperNeed");
+  syncPreviewButton();
   document.getElementById("film").setAttribute("aria-label", t("film"));
   document.getElementById("format").setAttribute("aria-label", t("format"));
   placeholder.innerHTML = t("placeholder");
@@ -1672,7 +1682,7 @@ async function init() {
   });
   document.getElementById("preview").addEventListener("click", () => {
     const on = document.body.classList.toggle("previewing");
-    document.getElementById("preview").setAttribute("aria-pressed", on ? "true" : "false");
+    syncPreviewButton();
     endEdit();
     if (on) select(null);
     requestAnimationFrame(() => requestAnimationFrame(fit));
